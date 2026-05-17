@@ -293,7 +293,7 @@ describe("getIncomeStatement", () => {
 
     const vt = createVecTrade({ apiKey: "vq_test_key" });
     await vt.getIncomeStatement.execute(
-      { symbol: "MSFT" },
+      { symbol: "MSFT", period: "annual" },
       { toolCallId: "tc_is2", messages: [] },
     );
 
