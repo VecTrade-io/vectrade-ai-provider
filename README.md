@@ -152,6 +152,10 @@ for await (const chunk of stream.textStream) {
 | [`@vectrade/ai-provider`](https://github.com/VecTrade-io/vectrade-ai-provider) | Vercel AI SDK provider (this package) |
 | [`@vectrade/mcp`](https://github.com/VecTrade-io/vectrade-mcp) | Model Context Protocol server |
 
+## Documentation
+
+Full documentation is available at [docs.vectrade.io/sdks/ai-provider](https://docs.vectrade.io/sdks/ai-provider).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
