@@ -266,6 +266,17 @@ describe("error handling", () => {
       vt.getQuote.execute({ symbol: "AAPL" }, { toolCallId: "tc_net", messages: [] }),
     ).rejects.toThrow("fetch failed");
   });
+
+  it("throws on non-OK response from POST endpoint", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response('{"error":"internal"}', { status: 500 }),
+    );
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    await expect(
+      vt.analyzeStock.execute({ prompt: "test" }, { toolCallId: "tc_post_err", messages: [] }),
+    ).rejects.toThrow("VecTrade API error 500");
+  });
 });
 
 // ── Previously untested tools ─────────────────────────────────────────
