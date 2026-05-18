@@ -23,7 +23,7 @@
     "type": "git",
     "url": "https://github.com/VecTrade-io/vectrade-ai-provider.git"
   },
-  "homepage": "https://vectrade.io/api-docs/sdks/ai-provider",
+  "homepage": "https://docs.vectrade.io/sdks/ai-provider",
   "bugs": {
     "url": "https://github.com/VecTrade-io/vectrade-ai-provider/issues"
   },
