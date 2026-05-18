@@ -169,6 +169,20 @@ describe("getTechnicals", () => {
     expect(url).toContain("indicators=rsi%2Cmacd");
     expect(url).toContain("interval=1d");
   });
+
+  it("omits indicators param when not provided", async () => {
+    mockFetch.mockResolvedValueOnce(mockJsonResponse({ data: {} }));
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    await vt.getTechnicals.execute(
+      { symbol: "AAPL", interval: "1d" },
+      { toolCallId: "tc_tech_no_ind", messages: [] },
+    );
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("interval=1d");
+    expect(url).not.toContain("indicators=");
+  });
 });
 
 describe("getNews", () => {
@@ -184,6 +198,20 @@ describe("getNews", () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain("limit=5");
     expect(url).toContain("symbols=AAPL%2CGOOGL");
+  });
+
+  it("omits symbols param when not provided", async () => {
+    mockFetch.mockResolvedValueOnce(mockJsonResponse({ data: [] }));
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    await vt.getNews.execute(
+      { limit: 10 },
+      { toolCallId: "tc_news_no_sym", messages: [] },
+    );
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("limit=10");
+    expect(url).not.toContain("symbols=");
   });
 });
 
@@ -265,6 +293,17 @@ describe("error handling", () => {
     await expect(
       vt.getQuote.execute({ symbol: "AAPL" }, { toolCallId: "tc_net", messages: [] }),
     ).rejects.toThrow("fetch failed");
+  });
+
+  it("throws on non-OK response from POST endpoint", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response('{"error":"internal"}', { status: 500 }),
+    );
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    await expect(
+      vt.analyzeStock.execute({ prompt: "test" }, { toolCallId: "tc_post_err", messages: [] }),
+    ).rejects.toThrow("VecTrade API error 500");
   });
 });
 
@@ -440,5 +479,54 @@ describe("custom baseURL", () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).toMatch(/^https:\/\/custom\.api\.com\/v2\/vq\/quotes\/AAPL/);
     expect(url).not.toContain("//vq");
+  });
+});
+
+// ── Timeout handling ───────────────────────────────────────────────────
+
+describe("timeout configuration", () => {
+  it("passes no signal when timeout is 0 (disabled)", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ symbol: "AAPL" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const vt = createVecTrade({ apiKey: "vq_test_key", timeout: 0 });
+    await vt.getQuote.execute({ symbol: "AAPL" }, { toolCallId: "tc_no_timeout", messages: [] });
+
+    const [, init] = mockFetch.mock.calls[0];
+    expect(init.signal).toBeUndefined();
+  });
+
+  it("passes no signal for POST when timeout is 0", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ analysis: "test" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const vt = createVecTrade({ apiKey: "vq_test_key", timeout: 0 });
+    await vt.analyzeStock.execute({ prompt: "test" }, { toolCallId: "tc_no_timeout_post", messages: [] });
+
+    const [, init] = mockFetch.mock.calls[0];
+    expect(init.signal).toBeUndefined();
+  });
+
+  it("passes AbortSignal when timeout is set", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ symbol: "AAPL" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const vt = createVecTrade({ apiKey: "vq_test_key", timeout: 5000 });
+    await vt.getQuote.execute({ symbol: "AAPL" }, { toolCallId: "tc_timeout", messages: [] });
+
+    const [, init] = mockFetch.mock.calls[0];
+    expect(init.signal).toBeDefined();
   });
 });

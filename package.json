@@ -16,12 +16,22 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VecTrade-io/vectrade-ai-provider.git"
+  },
+  "homepage": "https://docs.vectrade.io/sdks/ai-provider",
+  "bugs": {
+    "url": "https://github.com/VecTrade-io/vectrade-ai-provider/issues"
+  },
   "scripts": {
     "build": "tsup",
     "lint": "eslint src/ tests/",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -40,6 +50,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "^25.8.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "ai": "^3.3.0",
     "eslint": "^9.39.4",
     "tsup": "^8.1.0",
