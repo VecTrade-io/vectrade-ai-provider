@@ -1,1 +1,20 @@
-* @VecTrade-io/core-team
+# ─── CODEOWNERS ─────────────────────────────────────────────────────────────
+# Maps file patterns to owners/agents responsible for review.
+
+# ── Default ─────────────────────────────────────────────────────────────────
+*                           @mountek
+
+# ── CI / DevOps ─────────────────────────────────────────────────────────────
+.github/workflows/          @mountek
+
+# ── AI Provider source (vt-ai-dev) ─────────────────────────────────────────
+src/                        @mountek
+
+# ── Tests (vt-ai-tester) ────────────────────────────────────────────────────
+tests/                      @mountek
+coverage/                   @mountek
+
+# ── Build config ────────────────────────────────────────────────────────────
+package.json                @mountek
+tsconfig.json               @mountek
+tsup.config.ts              @mountek
