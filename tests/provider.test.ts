@@ -47,7 +47,7 @@ describe("createVecTrade", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [, init] = mockFetch.mock.calls[0];
-    expect(init.headers.Authorization).toBe("Bearer vq_explicit_key");
+    expect(init.headers["X-API-Key"]).toBe("vq_explicit_key");
   });
 });
 
@@ -105,7 +105,7 @@ describe("getQuote", () => {
     expect(result).toEqual({ symbol: "AAPL", price: 198.5 });
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toContain("/vq/quotes/AAPL");
-    expect(init.headers.Authorization).toBe("Bearer vq_test_key");
+    expect(init.headers["X-API-Key"]).toBe("vq_test_key");
   });
 
   it("URL-encodes the symbol to prevent path traversal", async () => {

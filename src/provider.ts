@@ -41,7 +41,7 @@ async function apiGet(
     }
   }
   const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: { "X-API-Key": apiKey },
     signal: timeout ? AbortSignal.timeout(timeout) : undefined,
   });
   if (!res.ok) {
@@ -61,7 +61,7 @@ async function apiPost(
   const res = await fetch(`${baseURL}${path}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "X-API-Key": apiKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
