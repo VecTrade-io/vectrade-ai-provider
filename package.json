@@ -1,6 +1,6 @@
 {
   "name": "@vectrade/ai-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "VecTrade provider for Vercel AI SDK — use financial AI tools in any AI framework",
   "type": "module",
   "main": "./dist/index.cjs",
