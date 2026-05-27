@@ -131,40 +131,32 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
       apiGet(baseURL, apiKey, `/vq/fundamentals/${encodeURIComponent(symbol)}`, undefined, timeout),
   });
 
-  const getIncomeStatement = tool({
-    description: "Get income statement data (revenue, earnings, margins)",
+  const getFinancialStatements = tool({
+    description: "Get financial statements (income statement, balance sheet, cash flow)",
     parameters: z.object({
       symbol: z.string().describe("Stock ticker symbol"),
-      period: z
-        .enum(["annual", "quarterly"])
-        .default("annual")
-        .describe("Reporting period"),
     }),
-    execute: async ({ symbol, period }) =>
+    execute: async ({ symbol }) =>
       apiGet(
         baseURL,
         apiKey,
-        `/vq/fundamentals/${encodeURIComponent(symbol)}/income-statement`,
-        { period },
+        `/vq/fundamentals/${encodeURIComponent(symbol)}/statements`,
+        undefined,
         timeout,
       ),
   });
 
-  const getBalanceSheet = tool({
-    description: "Get balance sheet data (assets, liabilities, equity)",
+  const getCompanyProfile = tool({
+    description: "Get company profile information (sector, industry, description)",
     parameters: z.object({
       symbol: z.string().describe("Stock ticker symbol"),
-      period: z
-        .enum(["annual", "quarterly"])
-        .default("annual")
-        .describe("Reporting period"),
     }),
-    execute: async ({ symbol, period }) =>
+    execute: async ({ symbol }) =>
       apiGet(
         baseURL,
         apiKey,
-        `/vq/fundamentals/${encodeURIComponent(symbol)}/balance-sheet`,
-        { period },
+        `/vq/profile/${encodeURIComponent(symbol)}`,
+        undefined,
         timeout,
       ),
   });
@@ -191,7 +183,7 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
       return apiGet(
         baseURL,
         apiKey,
-        `/vq/technicals/${encodeURIComponent(symbol)}`,
+        `/vq/technical/${encodeURIComponent(symbol)}`,
         params,
         timeout,
       );
@@ -201,19 +193,21 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
   // ── News & Sentiment ──
 
   const getNews = tool({
-    description: "Get latest financial news, optionally filtered by symbols",
+    description: "Get latest financial news for a stock symbol",
     parameters: z.object({
-      symbols: z
-        .string()
-        .optional()
-        .describe("Comma-separated symbols to filter news"),
-      limit: z.number().min(1).max(50).default(10).describe("Number of articles"),
+      symbol: z.string().describe("Stock ticker symbol"),
     }),
-    execute: async ({ symbols, limit }) => {
-      const params: Record<string, string> = { limit: String(limit) };
-      if (symbols) params.symbols = symbols;
-      return apiGet(baseURL, apiKey, "/vq/news", params, timeout);
-    },
+    execute: async ({ symbol }) =>
+      apiGet(baseURL, apiKey, `/vq/news/${encodeURIComponent(symbol)}`, undefined, timeout),
+  });
+
+  const getSentiment = tool({
+    description: "Get sentiment analysis and social mentions for a stock",
+    parameters: z.object({
+      symbol: z.string().describe("Stock ticker symbol"),
+    }),
+    execute: async ({ symbol }) =>
+      apiGet(baseURL, apiKey, `/vq/sentiment/${encodeURIComponent(symbol)}`, undefined, timeout),
   });
 
   const getAnalystRatings = tool({
@@ -225,55 +219,72 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
       apiGet(
         baseURL,
         apiKey,
-        `/vq/analyst/${encodeURIComponent(symbol)}/consensus`,
+        `/vq/analyst-consensus/${encodeURIComponent(symbol)}`,
         undefined,
         timeout,
       ),
   });
 
-  // ── Screening ──
-
-  const runScreener = tool({
-    description:
-      "Screen stocks with filters (e.g., market_cap > 1B, pe_ratio < 20)",
+  const getUpgradesDowngrades = tool({
+    description: "Get recent analyst upgrades and downgrades for a stock",
     parameters: z.object({
-      filters: z
-        .record(z.unknown())
-        .describe("Filter object (e.g., { market_cap_gt: 1000000000 })"),
-      limit: z.number().min(1).max(100).default(20).describe("Max results"),
+      symbol: z.string().describe("Stock ticker symbol"),
     }),
-    execute: async ({ filters, limit }) =>
-      apiPost(baseURL, apiKey, "/vq/screener", { filters, limit }, timeout),
-  });
-
-  // ── AI Analysis ──
-
-  const analyzeStock = tool({
-    description: "Run AI-powered financial analysis on a stock or topic",
-    parameters: z.object({
-      prompt: z.string().describe("Analysis prompt (e.g., 'Analyze AAPL earnings')"),
-    }),
-    execute: async ({ prompt }) =>
-      apiPost(baseURL, apiKey, "/vq/ai/analyze", { prompt, stream: false }, timeout),
-  });
-
-  const compareStocks = tool({
-    description: "AI-powered side-by-side comparison of multiple stocks",
-    parameters: z.object({
-      symbols: z
-        .array(z.string())
-        .min(2)
-        .max(5)
-        .describe("Symbols to compare (2–5)"),
-    }),
-    execute: async ({ symbols }) =>
-      apiPost(
+    execute: async ({ symbol }) =>
+      apiGet(
         baseURL,
         apiKey,
-        "/vq/ai/analyze",
-        { prompt: `Compare: ${symbols.join(" vs ")}`, stream: false },
+        `/vq/upgrades-downgrades/${encodeURIComponent(symbol)}`,
+        undefined,
         timeout,
       ),
+  });
+
+  const getAnalystTargets = tool({
+    description: "Get analyst price target estimates (high, low, mean, median) for a stock",
+    parameters: z.object({
+      symbol: z.string().describe("Stock ticker symbol"),
+    }),
+    execute: async ({ symbol }) =>
+      apiGet(
+        baseURL,
+        apiKey,
+        `/vq/analyst-targets/${encodeURIComponent(symbol)}`,
+        undefined,
+        timeout,
+      ),
+  });
+
+  // ── Historical Data ──
+
+  const getHistoricalPrices = tool({
+    description: "Get historical OHLCV price data for a stock",
+    parameters: z.object({
+      symbol: z.string().describe("Stock ticker symbol"),
+      period: z
+        .enum(["5d", "1mo", "3mo", "6mo", "1y", "5y"])
+        .default("5d")
+        .describe("Time period for historical data"),
+    }),
+    execute: async ({ symbol, period }) =>
+      apiGet(
+        baseURL,
+        apiKey,
+        `/vq/quotes/${encodeURIComponent(symbol)}/history`,
+        { period },
+        timeout,
+      ),
+  });
+
+  // ── ETF ──
+
+  const getETF = tool({
+    description: "Get ETF information, holdings, sector weights, and performance data",
+    parameters: z.object({
+      symbol: z.string().describe("ETF ticker symbol (e.g., SPY, QQQ, VTI)"),
+    }),
+    execute: async ({ symbol }) =>
+      apiGet(baseURL, apiKey, `/vq/etf/${encodeURIComponent(symbol)}`, undefined, timeout),
   });
 
   // ── Options ──
@@ -308,7 +319,7 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
       apiGet(
         baseURL,
         apiKey,
-        `/vq/earnings/${encodeURIComponent(symbol)}/history`,
+        `/vq/earnings/${encodeURIComponent(symbol)}`,
         undefined,
         timeout,
       ),
@@ -325,7 +336,7 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
       apiGet(
         baseURL,
         apiKey,
-        `/vq/insider/${encodeURIComponent(symbol)}/transactions`,
+        `/vq/insider/${encodeURIComponent(symbol)}`,
         undefined,
         timeout,
       ),
@@ -337,18 +348,20 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
     return {
       getQuote,
       getBatchQuotes,
+      getHistoricalPrices,
       getFundamentals,
-      getIncomeStatement,
-      getBalanceSheet,
+      getFinancialStatements,
+      getCompanyProfile,
       getTechnicals,
       getNews,
+      getSentiment,
       getAnalystRatings,
-      runScreener,
-      analyzeStock,
-      compareStocks,
+      getAnalystTargets,
+      getUpgradesDowngrades,
       getOptionsChain,
       getEarnings,
       getInsiderTransactions,
+      getETF,
     };
   }
 
@@ -358,17 +371,19 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
     /** Individual tools for selective use. */
     getQuote,
     getBatchQuotes,
+    getHistoricalPrices,
     getFundamentals,
-    getIncomeStatement,
-    getBalanceSheet,
+    getFinancialStatements,
+    getCompanyProfile,
     getTechnicals,
     getNews,
+    getSentiment,
     getAnalystRatings,
-    runScreener,
-    analyzeStock,
-    compareStocks,
+    getAnalystTargets,
+    getUpgradesDowngrades,
     getOptionsChain,
     getEarnings,
     getInsiderTransactions,
+    getETF,
   };
 }
