@@ -48,7 +48,8 @@ const vt = createVecTrade({
 
 ## Available Tools
 
-The provider exposes **14 financial AI tools** that integrate seamlessly with the Vercel AI SDK:
+The provider exposes **16 VecTrade API endpoints** as AI-callable tools that
+integrate seamlessly with the Vercel AI SDK:
 
 ### Market Data
 
@@ -56,14 +57,15 @@ The provider exposes **14 financial AI tools** that integrate seamlessly with th
 |------|-------------|
 | `getQuote` | Real-time stock quote for a ticker |
 | `getBatchQuotes` | Quotes for multiple symbols (max 50) |
+| `getHistoricalPrices` | OHLCV price history |
 
 ### Fundamentals
 
 | Tool | Description |
 |------|-------------|
 | `getFundamentals` | PE ratio, market cap, financials overview |
-| `getIncomeStatement` | Revenue, earnings, margins (annual/quarterly) |
-| `getBalanceSheet` | Assets, liabilities, equity (annual/quarterly) |
+| `getFinancialStatements` | Income, balance sheet, cash flow statements |
+| `getCompanyProfile` | Company information, sector, industry, exchange |
 
 ### Technical Analysis
 
@@ -76,20 +78,15 @@ The provider exposes **14 financial AI tools** that integrate seamlessly with th
 | Tool | Description |
 |------|-------------|
 | `getNews` | Latest financial news, filterable by symbol |
-| `getAnalystRatings` | Consensus ratings and price targets |
+| `getSentiment` | Social and news sentiment scoring |
 
-### AI Analysis
-
-| Tool | Description |
-|------|-------------|
-| `analyzeStock` | AI-powered stock analysis |
-| `compareStocks` | Side-by-side stock comparison |
-
-### Screening
+### Analyst Research
 
 | Tool | Description |
 |------|-------------|
-| `runScreener` | Filter stocks by custom criteria |
+| `getAnalystRatings` | Analyst consensus ratings |
+| `getAnalystTargets` | Analyst price targets (high/low/mean) |
+| `getUpgradesDowngrades` | Recent analyst rating changes |
 
 ### Options & Events
 
@@ -98,6 +95,12 @@ The provider exposes **14 financial AI tools** that integrate seamlessly with th
 | `getOptionsChain` | Options chain by expiration |
 | `getEarnings` | Earnings history and estimates |
 | `getInsiderTransactions` | Insider buying/selling activity |
+
+### ETF
+
+| Tool | Description |
+|------|-------------|
+| `getETF` | ETF profile, NAV, and holdings |
 
 ## Usage Patterns
 
@@ -108,6 +111,16 @@ const { text } = await generateText({
   model: yourModel,
   tools: vt.tools(),
   prompt: "Analyze the tech sector",
+});
+```
+
+### Use Selected Tools
+
+```typescript
+const { text } = await generateText({
+  model: yourModel,
+  tools: vt.tools(["getQuote", "getAnalystRatings"]),
+  prompt: "Summarize AAPL's price and analyst consensus",
 });
 ```
 

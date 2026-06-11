@@ -54,36 +54,47 @@ describe("createVecTrade", () => {
 // ── Tool inventory ─────────────────────────────────────────────────────
 
 describe("tools()", () => {
-  it("returns all 14 tools", () => {
+  it("returns all 16 tools", () => {
     const vt = createVecTrade({ apiKey: "vq_test_key" });
     const allTools = vt.tools();
     const names = Object.keys(allTools);
 
-    expect(names).toHaveLength(14);
+    expect(names).toHaveLength(16);
     expect(names).toEqual(
       expect.arrayContaining([
         "getQuote",
         "getBatchQuotes",
+        "getHistoricalPrices",
         "getFundamentals",
-        "getIncomeStatement",
-        "getBalanceSheet",
+        "getFinancialStatements",
+        "getCompanyProfile",
         "getTechnicals",
         "getNews",
+        "getSentiment",
         "getAnalystRatings",
-        "runScreener",
-        "analyzeStock",
-        "compareStocks",
+        "getAnalystTargets",
+        "getUpgradesDowngrades",
         "getOptionsChain",
         "getEarnings",
         "getInsiderTransactions",
+        "getETF",
       ]),
     );
+  });
+
+  it("returns a selected subset of tools", () => {
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    const selectedTools = vt.tools(["getQuote", "getAnalystRatings"]);
+
+    expect(Object.keys(selectedTools)).toEqual(["getQuote", "getAnalystRatings"]);
+    expect(selectedTools.getQuote).toBe(vt.getQuote);
+    expect(selectedTools.getAnalystRatings).toBe(vt.getAnalystRatings);
   });
 
   it("exposes individual tools on the provider object", () => {
     const vt = createVecTrade({ apiKey: "vq_test_key" });
     expect(vt.getQuote).toBeDefined();
-    expect(vt.analyzeStock).toBeDefined();
+    expect(vt.getETF).toBeDefined();
     expect(vt.getInsiderTransactions).toBeDefined();
   });
 });
@@ -186,32 +197,31 @@ describe("getTechnicals", () => {
 });
 
 describe("getNews", () => {
-  it("includes limit and optional symbols params", async () => {
+  it("calls /vq/news/:symbol", async () => {
     mockFetch.mockResolvedValueOnce(mockJsonResponse({ data: [] }));
 
     const vt = createVecTrade({ apiKey: "vq_test_key" });
     await vt.getNews.execute(
-      { symbols: "AAPL,GOOGL", limit: 5 },
+      { symbol: "AAPL" },
       { toolCallId: "tc_6", messages: [] },
     );
 
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("limit=5");
-    expect(url).toContain("symbols=AAPL%2CGOOGL");
+    expect(url).toContain("/vq/news/AAPL");
   });
 
-  it("omits symbols param when not provided", async () => {
+  it("URL-encodes the symbol", async () => {
     mockFetch.mockResolvedValueOnce(mockJsonResponse({ data: [] }));
 
     const vt = createVecTrade({ apiKey: "vq_test_key" });
     await vt.getNews.execute(
-      { limit: 10 },
+      { symbol: "../news" },
       { toolCallId: "tc_news_no_sym", messages: [] },
     );
 
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("limit=10");
-    expect(url).not.toContain("symbols=");
+    expect(url).toContain("%2F");
+    expect(url).not.toContain("../");
   });
 });
 
@@ -228,47 +238,6 @@ describe("getOptionsChain", () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain("/vq/options/AAPL/chain");
     expect(url).toContain("expiration=2026-06-20");
-  });
-});
-
-// ── POST tools ─────────────────────────────────────────────────────────
-
-describe("analyzeStock", () => {
-  it("sends POST with prompt in body", async () => {
-    mockFetch.mockResolvedValueOnce(
-      mockJsonResponse({ analysis: "Strong buy..." }),
-    );
-
-    const vt = createVecTrade({ apiKey: "vq_test_key" });
-    const result = await vt.analyzeStock.execute(
-      { prompt: "Analyze AAPL" },
-      { toolCallId: "tc_8", messages: [] },
-    );
-
-    expect(result).toHaveProperty("analysis");
-    const [url, init] = mockFetch.mock.calls[0];
-    expect(url).toContain("/vq/ai/analyze");
-    expect(init.method).toBe("POST");
-    const body = JSON.parse(init.body);
-    expect(body.prompt).toBe("Analyze AAPL");
-    expect(body.stream).toBe(false);
-  });
-});
-
-describe("runScreener", () => {
-  it("sends POST with filters and limit", async () => {
-    mockFetch.mockResolvedValueOnce(mockJsonResponse({ data: [], total: 0 }));
-
-    const vt = createVecTrade({ apiKey: "vq_test_key" });
-    await vt.runScreener.execute(
-      { filters: { market_cap_gt: 1_000_000_000 }, limit: 10 },
-      { toolCallId: "tc_9", messages: [] },
-    );
-
-    const [, init] = mockFetch.mock.calls[0];
-    const body = JSON.parse(init.body);
-    expect(body.filters).toEqual({ market_cap_gt: 1_000_000_000 });
-    expect(body.limit).toBe(10);
   });
 });
 
@@ -295,73 +264,62 @@ describe("error handling", () => {
     ).rejects.toThrow("fetch failed");
   });
 
-  it("throws on non-OK response from POST endpoint", async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response('{"error":"internal"}', { status: 500 }),
-    );
-
-    const vt = createVecTrade({ apiKey: "vq_test_key" });
-    await expect(
-      vt.analyzeStock.execute({ prompt: "test" }, { toolCallId: "tc_post_err", messages: [] }),
-    ).rejects.toThrow("VecTrade API error 500");
-  });
 });
 
 // ── Previously untested tools ─────────────────────────────────────────
 
-describe("getIncomeStatement", () => {
-  it("calls /vq/fundamentals/:symbol/income-statement with period", async () => {
+describe("getFinancialStatements", () => {
+  it("calls /vq/fundamentals/:symbol/statements", async () => {
     mockFetch.mockResolvedValueOnce(
       mockJsonResponse({ data: [{ revenue: 100_000_000 }] }),
     );
 
     const vt = createVecTrade({ apiKey: "vq_test_key" });
-    const result = await vt.getIncomeStatement.execute(
-      { symbol: "AAPL", period: "quarterly" },
+    const result = await vt.getFinancialStatements.execute(
+      { symbol: "AAPL" },
       { toolCallId: "tc_is", messages: [] },
     );
 
     expect(result).toHaveProperty("data");
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("/vq/fundamentals/AAPL/income-statement");
-    expect(url).toContain("period=quarterly");
+    expect(url).toContain("/vq/fundamentals/AAPL/statements");
   });
 
-  it("defaults to annual period", async () => {
+  it("URL-encodes the symbol", async () => {
     mockFetch.mockResolvedValueOnce(mockJsonResponse({ data: [] }));
 
     const vt = createVecTrade({ apiKey: "vq_test_key" });
-    await vt.getIncomeStatement.execute(
-      { symbol: "MSFT", period: "annual" },
+    await vt.getFinancialStatements.execute(
+      { symbol: "../fundamentals" },
       { toolCallId: "tc_is2", messages: [] },
     );
 
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("period=annual");
+    expect(url).toContain("%2F");
+    expect(url).not.toContain("../");
   });
 });
 
-describe("getBalanceSheet", () => {
-  it("calls /vq/fundamentals/:symbol/balance-sheet with period", async () => {
+describe("getCompanyProfile", () => {
+  it("calls /vq/profile/:symbol", async () => {
     mockFetch.mockResolvedValueOnce(
-      mockJsonResponse({ data: [{ totalAssets: 350_000_000_000 }] }),
+      mockJsonResponse({ symbol: "GOOGL", sector: "Technology" }),
     );
 
     const vt = createVecTrade({ apiKey: "vq_test_key" });
-    const result = await vt.getBalanceSheet.execute(
-      { symbol: "GOOGL", period: "annual" },
+    const result = await vt.getCompanyProfile.execute(
+      { symbol: "GOOGL" },
       { toolCallId: "tc_bs", messages: [] },
     );
 
-    expect(result).toHaveProperty("data");
+    expect(result).toHaveProperty("sector");
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("/vq/fundamentals/GOOGL/balance-sheet");
-    expect(url).toContain("period=annual");
+    expect(url).toContain("/vq/profile/GOOGL");
   });
 });
 
 describe("getAnalystRatings", () => {
-  it("calls /vq/analyst/:symbol/consensus", async () => {
+  it("calls /vq/analyst-consensus/:symbol", async () => {
     mockFetch.mockResolvedValueOnce(
       mockJsonResponse({ consensus: "Buy", targetPrice: 220 }),
     );
@@ -374,7 +332,7 @@ describe("getAnalystRatings", () => {
 
     expect(result).toHaveProperty("consensus");
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("/vq/analyst/AAPL/consensus");
+    expect(url).toContain("/vq/analyst-consensus/AAPL");
   });
 
   it("URL-encodes the symbol", async () => {
@@ -391,31 +349,60 @@ describe("getAnalystRatings", () => {
   });
 });
 
-describe("compareStocks", () => {
-  it("sends POST to /vq/ai/analyze with comparison prompt", async () => {
+describe("getAnalystTargets", () => {
+  it("calls /vq/analyst-targets/:symbol", async () => {
     mockFetch.mockResolvedValueOnce(
-      mockJsonResponse({ analysis: "AAPL vs MSFT..." }),
+      mockJsonResponse({ mean: 220, high: 250 }),
     );
 
     const vt = createVecTrade({ apiKey: "vq_test_key" });
-    const result = await vt.compareStocks.execute(
-      { symbols: ["AAPL", "MSFT"] },
+    const result = await vt.getAnalystTargets.execute(
+      { symbol: "AAPL" },
       { toolCallId: "tc_cmp", messages: [] },
     );
 
-    expect(result).toHaveProperty("analysis");
-    const [url, init] = mockFetch.mock.calls[0];
-    expect(url).toContain("/vq/ai/analyze");
-    expect(init.method).toBe("POST");
-    const body = JSON.parse(init.body);
-    expect(body.prompt).toContain("AAPL");
-    expect(body.prompt).toContain("MSFT");
-    expect(body.stream).toBe(false);
+    expect(result).toHaveProperty("mean");
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("/vq/analyst-targets/AAPL");
+  });
+});
+
+describe("getUpgradesDowngrades", () => {
+  it("calls /vq/upgrades-downgrades/:symbol", async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockJsonResponse({ data: [{ firm: "Example", action: "upgrade" }] }),
+    );
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    const result = await vt.getUpgradesDowngrades.execute(
+      { symbol: "MSFT" },
+      { toolCallId: "tc_ud", messages: [] },
+    );
+
+    expect(result).toHaveProperty("data");
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("/vq/upgrades-downgrades/MSFT");
+  });
+});
+
+describe("getSentiment", () => {
+  it("calls /vq/sentiment/:symbol", async () => {
+    mockFetch.mockResolvedValueOnce(mockJsonResponse({ score: 0.72 }));
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    const result = await vt.getSentiment.execute(
+      { symbol: "NVDA" },
+      { toolCallId: "tc_sentiment", messages: [] },
+    );
+
+    expect(result).toHaveProperty("score");
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("/vq/sentiment/NVDA");
   });
 });
 
 describe("getEarnings", () => {
-  it("calls /vq/earnings/:symbol/history", async () => {
+  it("calls /vq/earnings/:symbol", async () => {
     mockFetch.mockResolvedValueOnce(
       mockJsonResponse({ data: [{ quarter: "Q1 2026", epsActual: 2.1 }] }),
     );
@@ -428,12 +415,12 @@ describe("getEarnings", () => {
 
     expect(result).toHaveProperty("data");
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("/vq/earnings/TSLA/history");
+    expect(url).toContain("/vq/earnings/TSLA");
   });
 });
 
 describe("getInsiderTransactions", () => {
-  it("calls /vq/insider/:symbol/transactions", async () => {
+  it("calls /vq/insider/:symbol", async () => {
     mockFetch.mockResolvedValueOnce(
       mockJsonResponse({ data: [{ insider: "Tim Cook", type: "sale", shares: 100_000 }] }),
     );
@@ -446,7 +433,7 @@ describe("getInsiderTransactions", () => {
 
     expect(result).toHaveProperty("data");
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("/vq/insider/AAPL/transactions");
+    expect(url).toContain("/vq/insider/AAPL");
   });
 
   it("URL-encodes symbol for path safety", async () => {
@@ -461,6 +448,38 @@ describe("getInsiderTransactions", () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).not.toContain("../");
     expect(url).toContain("%2F");
+  });
+});
+
+describe("getHistoricalPrices", () => {
+  it("calls /vq/quotes/:symbol/history with period", async () => {
+    mockFetch.mockResolvedValueOnce(mockJsonResponse({ data: [] }));
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    await vt.getHistoricalPrices.execute(
+      { symbol: "AAPL", period: "1mo" },
+      { toolCallId: "tc_history", messages: [] },
+    );
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("/vq/quotes/AAPL/history");
+    expect(url).toContain("period=1mo");
+  });
+});
+
+describe("getETF", () => {
+  it("calls /vq/etf/:symbol", async () => {
+    mockFetch.mockResolvedValueOnce(mockJsonResponse({ symbol: "SPY" }));
+
+    const vt = createVecTrade({ apiKey: "vq_test_key" });
+    const result = await vt.getETF.execute(
+      { symbol: "SPY" },
+      { toolCallId: "tc_etf", messages: [] },
+    );
+
+    expect(result).toHaveProperty("symbol");
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("/vq/etf/SPY");
   });
 });
 
@@ -495,21 +514,6 @@ describe("timeout configuration", () => {
 
     const vt = createVecTrade({ apiKey: "vq_test_key", timeout: 0 });
     await vt.getQuote.execute({ symbol: "AAPL" }, { toolCallId: "tc_no_timeout", messages: [] });
-
-    const [, init] = mockFetch.mock.calls[0];
-    expect(init.signal).toBeUndefined();
-  });
-
-  it("passes no signal for POST when timeout is 0", async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ analysis: "test" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-
-    const vt = createVecTrade({ apiKey: "vq_test_key", timeout: 0 });
-    await vt.analyzeStock.execute({ prompt: "test" }, { toolCallId: "tc_no_timeout_post", messages: [] });
 
     const [, init] = mockFetch.mock.calls[0];
     expect(init.signal).toBeUndefined();

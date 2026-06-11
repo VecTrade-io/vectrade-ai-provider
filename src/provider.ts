@@ -51,29 +51,6 @@ async function apiGet(
   return res.json();
 }
 
-async function apiPost(
-  baseURL: string,
-  apiKey: string,
-  path: string,
-  body: Record<string, unknown>,
-  timeout?: number,
-): Promise<unknown> {
-  const res = await fetch(`${baseURL}${path}`, {
-    method: "POST",
-    headers: {
-      "X-API-Key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    signal: timeout ? AbortSignal.timeout(timeout) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`VecTrade API error ${res.status}: ${text}`);
-  }
-  return res.json();
-}
-
 // ── Public API ────────────────────────────────────────────────────────
 
 /**
@@ -342,33 +319,9 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
       ),
   });
 
-  // ── Return all tools via a factory method ──
+  // ── Return all tools, or a selected subset, via a factory method ──
 
-  function tools() {
-    return {
-      getQuote,
-      getBatchQuotes,
-      getHistoricalPrices,
-      getFundamentals,
-      getFinancialStatements,
-      getCompanyProfile,
-      getTechnicals,
-      getNews,
-      getSentiment,
-      getAnalystRatings,
-      getAnalystTargets,
-      getUpgradesDowngrades,
-      getOptionsChain,
-      getEarnings,
-      getInsiderTransactions,
-      getETF,
-    };
-  }
-
-  return {
-    /** All available financial tools. */
-    tools,
-    /** Individual tools for selective use. */
+  const allTools = {
     getQuote,
     getBatchQuotes,
     getHistoricalPrices,
@@ -385,5 +338,28 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
     getEarnings,
     getInsiderTransactions,
     getETF,
+  };
+
+  function tools<TToolName extends keyof typeof allTools>(
+    names?: readonly TToolName[],
+  ): typeof allTools | Pick<typeof allTools, TToolName> {
+    if (!names) {
+      return allTools;
+    }
+
+    return names.reduce(
+      (selected, name) => {
+        selected[name] = allTools[name];
+        return selected;
+      },
+      {} as Pick<typeof allTools, TToolName>,
+    );
+  }
+
+  return {
+    /** All available financial tools. */
+    tools,
+    /** Individual tools for selective use. */
+    ...allTools,
   };
 }
