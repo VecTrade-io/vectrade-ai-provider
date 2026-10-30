@@ -80,23 +80,11 @@ describeIf("Live Integration Tests", () => {
       }
     });
 
-    it("gets income statement or returns structured error", async () => {
+    it("gets financial statements or returns structured error", async () => {
       try {
-        const result = await vt.getIncomeStatement.execute(
-          { symbol: "AAPL", period: "annual" },
+        const result = await vt.getFinancialStatements.execute(
+          { symbol: "AAPL" },
           { toolCallId: "t6", messages: [] },
-        );
-        expect(result).toBeDefined();
-      } catch (e: unknown) {
-        expect((e as Error).message).toMatch(/4(04|00)/);
-      }
-    });
-
-    it("gets balance sheet or returns structured error", async () => {
-      try {
-        const result = await vt.getBalanceSheet.execute(
-          { symbol: "AAPL", period: "annual" },
-          { toolCallId: "t7", messages: [] },
         );
         expect(result).toBeDefined();
       } catch (e: unknown) {
@@ -127,7 +115,7 @@ describeIf("Live Integration Tests", () => {
     it("gets news or returns structured error", async () => {
       try {
         const result = await vt.getNews.execute(
-          { limit: 5 },
+          { symbol: "AAPL" },
           { toolCallId: "t9", messages: [] },
         );
         expect(result).toBeDefined();
@@ -141,22 +129,6 @@ describeIf("Live Integration Tests", () => {
         const result = await vt.getAnalystRatings.execute(
           { symbol: "AAPL" },
           { toolCallId: "t10", messages: [] },
-        );
-        expect(result).toBeDefined();
-      } catch (e: unknown) {
-        expect((e as Error).message).toMatch(/4(04|00)/);
-      }
-    });
-  });
-
-  // ── AI Analysis ──
-
-  describe("AI Analysis", () => {
-    it("analyzes a stock or returns structured error", async () => {
-      try {
-        const result = await vt.analyzeStock.execute(
-          { prompt: "Brief summary of AAPL" },
-          { toolCallId: "t11", messages: [] },
         );
         expect(result).toBeDefined();
       } catch (e: unknown) {

@@ -48,30 +48,23 @@ async function apiGet(
     const body = await res.text();
     throw new Error(`VecTrade API error ${res.status}: ${body}`);
   }
-  return res.json();
-}
-
-async function apiPost(
-  baseURL: string,
-  apiKey: string,
-  path: string,
-  body: Record<string, unknown>,
-  timeout?: number,
-): Promise<unknown> {
-  const res = await fetch(`${baseURL}${path}`, {
-    method: "POST",
-    headers: {
-      "X-API-Key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    signal: timeout ? AbortSignal.timeout(timeout) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`VecTrade API error ${res.status}: ${text}`);
+  const body: unknown = await res.json();
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("status" in body) ||
+    !["ok", "degraded"].includes(String(body.status)) ||
+    !("data" in body)
+  ) {
+    return body;
   }
-  return res.json();
+
+  const metadata = Object.fromEntries(
+    Object.entries(body).filter(([key]) => key !== "status" && key !== "data"),
+  );
+  return Object.keys(metadata).length > 0
+    ? { data: body.data, ...metadata }
+    : body.data;
 }
 
 // ── Public API ────────────────────────────────────────────────────────
@@ -113,11 +106,11 @@ export function createVecTrade(options: VecTradeProviderOptions = {}) {
       symbols: z
         .array(z.string())
         .min(1)
-        .max(50)
-        .describe("Array of ticker symbols (max 50)"),
+        .max(20)
+        .describe("Array of ticker symbols (max 20)"),
     }),
     execute: async ({ symbols }) =>
-      apiGet(baseURL, apiKey, "/vq/quotes/batch", { symbols: symbols.join(",") }, timeout),
+      apiGet(baseURL, apiKey, "/vq/quotes/batch", { tickers: symbols.join(",") }, timeout),
   });
 
   // ── Fundamentals ──

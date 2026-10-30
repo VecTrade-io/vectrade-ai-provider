@@ -48,7 +48,7 @@ const vt = createVecTrade({
 
 ## Available Tools
 
-The provider exposes **14 financial AI tools** that integrate seamlessly with the Vercel AI SDK:
+The provider exposes **16 financial AI tools** that integrate seamlessly with the Vercel AI SDK:
 
 ### Market Data
 
@@ -56,14 +56,16 @@ The provider exposes **14 financial AI tools** that integrate seamlessly with th
 |------|-------------|
 | `getQuote` | Real-time stock quote for a ticker |
 | `getBatchQuotes` | Quotes for multiple symbols (max 50) |
+| `getHistoricalPrices` | Historical OHLCV prices |
+| `getETF` | ETF holdings, sector weights, performance |
 
 ### Fundamentals
 
 | Tool | Description |
 |------|-------------|
 | `getFundamentals` | PE ratio, market cap, financials overview |
-| `getIncomeStatement` | Revenue, earnings, margins (annual/quarterly) |
-| `getBalanceSheet` | Assets, liabilities, equity (annual/quarterly) |
+| `getFinancialStatements` | Income statement, balance sheet, cash flow |
+| `getCompanyProfile` | Sector, industry, description |
 
 ### Technical Analysis
 
@@ -75,21 +77,11 @@ The provider exposes **14 financial AI tools** that integrate seamlessly with th
 
 | Tool | Description |
 |------|-------------|
-| `getNews` | Latest financial news, filterable by symbol |
-| `getAnalystRatings` | Consensus ratings and price targets |
-
-### AI Analysis
-
-| Tool | Description |
-|------|-------------|
-| `analyzeStock` | AI-powered stock analysis |
-| `compareStocks` | Side-by-side stock comparison |
-
-### Screening
-
-| Tool | Description |
-|------|-------------|
-| `runScreener` | Filter stocks by custom criteria |
+| `getNews` | Latest financial news for a symbol |
+| `getSentiment` | Sentiment analysis and social mentions |
+| `getAnalystRatings` | Analyst consensus ratings |
+| `getAnalystTargets` | Price target estimates |
+| `getUpgradesDowngrades` | Recent analyst rating changes |
 
 ### Options & Events
 

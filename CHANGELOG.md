@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Test and docs drift** — align tests and README with the 16 tools and current API routes; remove the unused POST helper.
+- **TypeScript exports** — place the `types` condition before runtime exports so package-aware resolvers can select declarations.
+
 ## [1.0.0] - 2026-05-29
 
 ### Changed
